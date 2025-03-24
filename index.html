@@ -6,23 +6,46 @@
     <title>Verificador de Nomes</title>
     <style>
         body { font-family: Arial, sans-serif; display: flex; height: 100vh; justify-content: center; align-items: center; background-color: #f0f2f5; }
-        .container { background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); text-align: center; }
+        .container { background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); text-align: center; width: 300px; }
         input, button { padding: 10px; margin: 10px 0; width: 100%; border-radius: 6px; border: 1px solid #ccc; }
         .success { color: green; }
         .error { color: red; }
+        #loginContainer { display: none; }
+        #mainContainer { display: block; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Área de Verificação de Nomes -->
+    <div class="container" id="mainContainer">
         <h1>Verificador de Nomes</h1>
         <input type="text" id="nameInput" placeholder="Digite um nome">
         <button onclick="checkName()">Verificar</button>
+        <button onclick="showLogin()">Ir para Login</button>
         <p id="result"></p>
     </div>
 
+    <!-- Área de Login -->
+    <div class="container" id="loginContainer">
+        <h1>Login</h1>
+        <input type="text" id="username" placeholder="Usuário">
+        <input type="password" id="password" placeholder="Senha">
+        <button onclick="login()">Entrar</button>
+        <p id="loginError" class="error"></p>
+        <button onclick="goBackToMain()">Voltar para a Página de Verificação</button>
+
+        <!-- Botão e campo para adicionar nome à lista de TESTE, visível após login -->
+        <div id="addNameSection" style="display: none;">
+            <h3>Adicionar Nome à Lista de Teste</h3>
+            <input type="text" id="newNameInput" placeholder="Digite um nome para adicionar">
+            <button onclick="addNameToTestList()">Adicionar Nome</button>
+        </div>
+    </div>
+
     <script>
-        const testNameList = ["Ana", "Bruno", "Carla", "Daniel", "Eduardo", "Laís"];
-        const finalNameList = ["João", "Mariana", "Lucas", "Fernanda", "Gustavo", "Bianca"];
+        const correctUsername = "admin";
+        const correctPassword = "senha123";
+        let testNameList = JSON.parse(localStorage.getItem('testNameList')) || ["Ana", "Bruno", "Carla", "Daniel", "Eduardo", "Laís"];
+        let finalNameList = JSON.parse(localStorage.getItem('finalNameList')) || ["João", "Mariana", "Lucas", "Fernanda", "Gustavo", "Bianca"];
 
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -48,6 +71,48 @@
                 resultElement.textContent = `O nome "${inputName}" NÃO está em nenhuma lista.`;
                 resultElement.className = "error";
             }
+        }
+
+        function showLogin() {
+            document.getElementById("mainContainer").style.display = "none"; // Esconde a área de verificação
+            document.getElementById("loginContainer").style.display = "block"; // Exibe a área de login
+        }
+
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const loginErrorElement = document.getElementById("loginError");
+
+            if (username === correctUsername && password === correctPassword) {
+                document.getElementById("mainContainer").style.display = "block"; // Exibe a área de verificação de nome
+                document.getElementById("loginContainer").style.display = "none"; // Esconde a área de login
+                document.getElementById("addNameSection").style.display = "block"; // Exibe a seção para adicionar nome
+            } else {
+                loginErrorElement.textContent = "Usuário ou senha incorretos!";
+            }
+        }
+
+        function goBackToMain() {
+            document.getElementById("mainContainer").style.display = "block"; // Exibe a área de verificação de nome
+            document.getElementById("loginContainer").style.display = "none"; // Esconde a área de login
+        }
+
+        function addNameToTestList() {
+            const newName = normalizeString(document.getElementById("newNameInput").value.trim());
+            if (newName && !testNameList.includes(newName)) {
+                testNameList.push(newName);
+                saveData();
+                alert(`O nome "${newName}" foi adicionado à lista de TESTE.`);
+            } else if (!newName) {
+                alert("Por favor, insira um nome.");
+            } else {
+                alert("Esse nome já está na lista de TESTE.");
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('testNameList', JSON.stringify(testNameList));
+            localStorage.setItem('finalNameList', JSON.stringify(finalNameList));
         }
     </script>
 </body>
