@@ -21,7 +21,8 @@
     </div>
 
     <script>
-        const nameList = ["Ana", "Bruno", "Carla", "Daniel", "Eduardo", "Laís"];
+        const testNameList = ["Ana", "Bruno", "Carla", "Daniel", "Eduardo", "Laís"];
+        const finalNameList = ["João", "Mariana", "Lucas", "Fernanda", "Gustavo", "Bianca"];
 
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -37,11 +38,14 @@
                 return;
             }
 
-            if (nameList.some(name => normalizeString(name) === inputName)) {
-                resultElement.textContent = `O nome "${inputName}" está na lista.`;
+            if (testNameList.some(name => normalizeString(name) === inputName)) {
+                resultElement.textContent = `O nome "${inputName}" está na lista de TESTE.`;
+                resultElement.className = "success";
+            } else if (finalNameList.some(name => normalizeString(name) === inputName)) {
+                resultElement.textContent = `O nome "${inputName}" está na lista DEFINITIVA.`;
                 resultElement.className = "success";
             } else {
-                resultElement.textContent = `O nome "${inputName}" NÃO está na lista.`;
+                resultElement.textContent = `O nome "${inputName}" NÃO está em nenhuma lista.`;
                 resultElement.className = "error";
             }
         }
