@@ -5,114 +5,290 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificador de Nomes</title>
     <style>
-        body { font-family: Arial, sans-serif; display: flex; height: 100vh; justify-content: center; align-items: center; background-color: #f0f2f5; }
-        .container { background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); text-align: center; width: 300px; }
-        input, button { padding: 10px; margin: 10px 0; width: 100%; border-radius: 6px; border: 1px solid #ccc; }
-        .success { color: green; }
-        .error { color: red; }
-        #loginContainer { display: none; }
-        #mainContainer { display: block; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result, #adminResult, #loginResult {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .found {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .not-found {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        #adminPanel {
+            display: none;
+        }
+        #loginPanel {
+            display: none;
+        }
+        #logoutBtn {
+            background-color: #f44336;
+            float: right;
+        }
+        #logoutBtn:hover {
+            background-color: #d32f2f;
+        }
+        .nome-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .nome-item:last-child {
+            border-bottom: none;
+        }
+        .remove-btn {
+            background-color: #f44336;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        .admin-access {
+            text-align: center;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
-    <!-- Área de Verificação de Nomes -->
-    <div class="container" id="mainContainer">
+    <!-- Área pública de verificação de nomes -->
+    <div class="container">
         <h1>Verificador de Nomes</h1>
-        <input type="text" id="nameInput" placeholder="Digite um nome">
-        <button onclick="checkName()">Verificar</button>
-        <button onclick="showLogin()">Ir para Login</button>
-        <p id="result"></p>
-    </div>
+        <p>Digite um nome para verificar se consta em nossa lista:</p>
+        
+        <input type="text" id="nomeInput" placeholder="Digite o nome completo">
+        <button onclick="verificarNome()">Verificar</button>
+        
+        <div id="result"></div>
 
-    <!-- Área de Login -->
-    <div class="container" id="loginContainer">
-        <h1>Login</h1>
-        <input type="text" id="username" placeholder="Usuário">
-        <input type="password" id="password" placeholder="Senha">
-        <button onclick="login()">Entrar</button>
-        <p id="loginError" class="error"></p>
-        <button onclick="goBackToMain()">Voltar para a Página de Verificação</button>
-
-        <!-- Botão e campo para adicionar nome à lista de TESTE, visível após login -->
-        <div id="addNameSection" style="display: none;">
-            <h3>Adicionar Nome à Lista de Teste</h3>
-            <input type="text" id="newNameInput" placeholder="Digite um nome para adicionar">
-            <button onclick="addNameToTestList()">Adicionar Nome</button>
+        <div class="admin-access">
+            <button onclick="mostrarLogin()">Acesso Administrativo</button>
         </div>
     </div>
 
+    <!-- Painel de login (inicialmente oculto) -->
+    <div id="loginPanel" class="container">
+        <h2>Acesso Administrativo</h2>
+        <input type="text" id="username" placeholder="Usuário">
+        <input type="password" id="password" placeholder="Senha">
+        <button onclick="login()">Entrar</button>
+        <button onclick="ocultarLogin()">Cancelar</button>
+        <div id="loginResult"></div>
+        
+        <p><small>Usuário de teste: admin | Senha: 1234</small></p>
+    </div>
+
+    <!-- Painel administrativo (inicialmente oculto) -->
+    <div id="adminPanel" class="container">
+        <button id="logoutBtn" onclick="logout()">Sair</button>
+        <h2>Área Administrativa</h2>
+        <h3>Adicionar Nome</h3>
+        <input type="text" id="novoNome" placeholder="Digite o novo nome">
+        <button onclick="adicionarNome()">Adicionar</button>
+        <div id="adminResult"></div>
+        
+        <h3>Lista de Nomes</h3>
+        <div id="listaNomes"></div>
+    </div>
+
     <script>
-        const correctUsername = "admin";
-        const correctPassword = "senha123";
-        let testNameList = JSON.parse(localStorage.getItem('testNameList')) || ["Ana", "Bruno", "Carla", "Daniel", "Eduardo", "Laís"];
-        let finalNameList = JSON.parse(localStorage.getItem('finalNameList')) || ["João", "Mariana", "Lucas", "Fernanda", "Gustavo", "Bianca"];
+        // Dados do usuário (em um sistema real, isso viria de um banco de dados)
+        const usuarios = [
+            { username: "admin", password: "1234" }
+        ];
+        
+        // Lista de nomes para verificação
+        let listaDeNomes = [
+            "João Silva",
+            "Maria Oliveira",
+            "Carlos Souza",
+            "Ana Santos",
+            "Pedro Costa",
+            "Luiza Pereira",
+            "Fernando Almeida"
+        ];
 
-        function normalizeString(str) {
-            return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        let usuarioLogado = null;
+
+        function mostrarLogin() {
+            document.getElementById('loginPanel').style.display = 'block';
         }
 
-        function checkName() {
-            const inputName = normalizeString(document.getElementById("nameInput").value.trim());
-            const resultElement = document.getElementById("result");
-
-            if (!inputName) {
-                resultElement.textContent = "Por favor, insira um nome.";
-                resultElement.className = "error";
-                return;
-            }
-
-            if (testNameList.some(name => normalizeString(name) === inputName)) {
-                resultElement.textContent = `O nome "${inputName}" está na lista de TESTE.`;
-                resultElement.className = "success";
-            } else if (finalNameList.some(name => normalizeString(name) === inputName)) {
-                resultElement.textContent = `O nome "${inputName}" está na lista DEFINITIVA.`;
-                resultElement.className = "success";
-            } else {
-                resultElement.textContent = `O nome "${inputName}" NÃO está em nenhuma lista.`;
-                resultElement.className = "error";
-            }
-        }
-
-        function showLogin() {
-            document.getElementById("mainContainer").style.display = "none"; // Esconde a área de verificação
-            document.getElementById("loginContainer").style.display = "block"; // Exibe a área de login
+        function ocultarLogin() {
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('loginResult').style.display = 'none';
         }
 
         function login() {
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-            const loginErrorElement = document.getElementById("loginError");
-
-            if (username === correctUsername && password === correctPassword) {
-                document.getElementById("mainContainer").style.display = "block"; // Exibe a área de verificação de nome
-                document.getElementById("loginContainer").style.display = "none"; // Esconde a área de login
-                document.getElementById("addNameSection").style.display = "block"; // Exibe a seção para adicionar nome
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginResult = document.getElementById('loginResult');
+            
+            const usuario = usuarios.find(u => u.username === username && u.password === password);
+            
+            if (usuario) {
+                usuarioLogado = usuario;
+                document.getElementById('loginPanel').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                document.getElementById('loginResult').style.display = 'none';
+                
+                atualizarListaNomes();
             } else {
-                loginErrorElement.textContent = "Usuário ou senha incorretos!";
+                loginResult.style.display = 'block';
+                loginResult.className = 'error';
+                loginResult.textContent = 'Usuário ou senha incorretos';
             }
         }
 
-        function goBackToMain() {
-            document.getElementById("mainContainer").style.display = "block"; // Exibe a área de verificação de nome
-            document.getElementById("loginContainer").style.display = "none"; // Esconde a área de login
+        function logout() {
+            usuarioLogado = null;
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
         }
 
-        function addNameToTestList() {
-            const newName = normalizeString(document.getElementById("newNameInput").value.trim());
-            if (newName && !testNameList.includes(newName)) {
-                testNameList.push(newName);
-                saveData();
-                alert(`O nome "${newName}" foi adicionado à lista de TESTE.`);
-            } else if (!newName) {
-                alert("Por favor, insira um nome.");
+        function verificarNome() {
+            const nome = document.getElementById('nomeInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!nome) {
+                alert("Por favor, digite um nome para verificar.");
+                return;
+            }
+            
+            // Verifica se o nome está na lista (case insensitive)
+            const encontrado = listaDeNomes.some(item => 
+                item.toLowerCase() === nome.toLowerCase()
+            );
+            
+            // Exibe o resultado
+            resultDiv.style.display = "block";
+            if (encontrado) {
+                resultDiv.className = "found";
+                resultDiv.innerHTML = `<strong>${nome}</strong> consta em nossa lista.`;
             } else {
-                alert("Esse nome já está na lista de TESTE.");
+                resultDiv.className = "not-found";
+                resultDiv.innerHTML = `<strong>${nome}</strong> não consta em nossa lista.`;
             }
         }
 
-        function saveData() {
-            localStorage.setItem('testNameList', JSON.stringify(testNameList));
-            localStorage.setItem('finalNameList', JSON.stringify(finalNameList));
+        function adicionarNome() {
+            const novoNome = document.getElementById('novoNome').value.trim();
+            const adminResult = document.getElementById('adminResult');
+            
+            if (!novoNome) {
+                adminResult.style.display = 'block';
+                adminResult.className = 'error';
+                adminResult.textContent = 'Por favor, digite um nome válido';
+                return;
+            }
+            
+            // Verifica se o nome já existe (case insensitive)
+            const existe = listaDeNomes.some(nome => 
+                nome.toLowerCase() === novoNome.toLowerCase()
+            );
+            
+            if (existe) {
+                adminResult.style.display = 'block';
+                adminResult.className = 'error';
+                adminResult.textContent = 'Este nome já está na lista';
+            } else {
+                listaDeNomes.push(novoNome);
+                adminResult.style.display = 'block';
+                adminResult.className = 'success';
+                adminResult.textContent = `Nome "${novoNome}" adicionado com sucesso!`;
+                document.getElementById('novoNome').value = '';
+                
+                atualizarListaNomes();
+            }
+        }
+
+        function removerNome(index) {
+            const nomeRemovido = listaDeNomes[index];
+            listaDeNomes.splice(index, 1);
+            
+            const adminResult = document.getElementById('adminResult');
+            adminResult.style.display = 'block';
+            adminResult.className = 'success';
+            adminResult.textContent = `Nome "${nomeRemovido}" removido com sucesso!`;
+            
+            atualizarListaNomes();
+        }
+
+        function atualizarListaNomes() {
+            const listaNomesDiv = document.getElementById('listaNomes');
+            listaNomesDiv.innerHTML = '';
+            
+            if (listaDeNomes.length === 0) {
+                listaNomesDiv.innerHTML = '<p>Nenhum nome cadastrado.</p>';
+                return;
+            }
+            
+            listaDeNomes.forEach((nome, index) => {
+                const nomeItem = document.createElement('div');
+                nomeItem.className = 'nome-item';
+                
+                const nomeText = document.createElement('span');
+                nomeText.textContent = nome;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = 'Remover';
+                removeBtn.onclick = () => removerNome(index);
+                
+                nomeItem.appendChild(nomeText);
+                nomeItem.appendChild(removeBtn);
+                
+                listaNomesDiv.appendChild(nomeItem);
+            });
         }
     </script>
 </body>
