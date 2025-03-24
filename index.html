@@ -7,12 +7,12 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
         }
-        h1, h2 {
+        h1, h2, h3 {
             color: #333;
             text-align: center;
         }
@@ -96,13 +96,35 @@
             text-align: center;
             margin: 20px 0;
         }
+        .list-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .list-box {
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .data-adicao {
+            font-size: 12px;
+            color: #666;
+            margin-left: 10px;
+        }
+        .move-btn {
+            background-color: #2196F3;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
     <!-- Área pública de verificação de nomes -->
     <div class="container">
         <h1>Verificador de Nomes</h1>
-        <p>Digite um nome para verificar se consta em nossa lista:</p>
+        <p>Digite um nome para verificar se consta em nossas listas:</p>
         
         <input type="text" id="nomeInput" placeholder="Digite o nome completo">
         <button onclick="verificarNome()">Verificar</button>
@@ -130,13 +152,22 @@
     <div id="adminPanel" class="container">
         <button id="logoutBtn" onclick="logout()">Sair</button>
         <h2>Área Administrativa</h2>
+        
         <h3>Adicionar Nome</h3>
         <input type="text" id="novoNome" placeholder="Digite o novo nome">
-        <button onclick="adicionarNome()">Adicionar</button>
+        <button onclick="adicionarNome()">Adicionar à Lista Teste</button>
         <div id="adminResult"></div>
         
-        <h3>Lista de Nomes</h3>
-        <div id="listaNomes"></div>
+        <div class="list-container">
+            <div class="list-box">
+                <h3>Lista Teste</h3>
+                <div id="listaTeste"></div>
+            </div>
+            <div class="list-box">
+                <h3>Lista Definitiva</h3>
+                <div id="listaDefinitiva"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -145,18 +176,88 @@
             { username: "admin", password: "1234" }
         ];
         
-        // Lista de nomes para verificação
-        let listaDeNomes = [
-            "João Silva",
-            "Maria Oliveira",
-            "Carlos Souza",
-            "Ana Santos",
-            "Pedro Costa",
-            "Luiza Pereira",
-            "Fernando Almeida"
+        // Listas de nomes
+        let listaTeste = [
+            // { nome: "Nome Exemplo", dataAdicao: "2023-05-01" }
+        ];
+        
+        let listaDefinitiva = [
+            { nome: "João Silva", dataAdicao: new Date().toISOString() },
+            { nome: "Maria Oliveira", dataAdicao: new Date().toISOString() },
+            { nome: "Carlos Souza", dataAdicao: new Date().toISOString() }
         ];
 
         let usuarioLogado = null;
+        let verificacaoInterval;
+
+        // Inicializa o sistema
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarListas();
+            iniciarVerificacaoPeriodica();
+        });
+
+        function carregarListas() {
+            // Tenta carregar do localStorage
+            const listaTesteSalva = localStorage.getItem('listaTeste');
+            const listaDefinitivaSalva = localStorage.getItem('listaDefinitiva');
+            
+            if (listaTesteSalva) {
+                listaTeste = JSON.parse(listaTesteSalva);
+            }
+            
+            if (listaDefinitivaSalva) {
+                listaDefinitiva = JSON.parse(listaDefinitivaSalva);
+            }
+            
+            // Verifica se há nomes para mover
+            verificarNomesParaMover();
+            
+            // Atualiza as listas na tela
+            if (usuarioLogado) {
+                atualizarListas();
+            }
+        }
+
+        function salvarListas() {
+            localStorage.setItem('listaTeste', JSON.stringify(listaTeste));
+            localStorage.setItem('listaDefinitiva', JSON.stringify(listaDefinitiva));
+        }
+
+        function iniciarVerificacaoPeriodica() {
+            // Verifica a cada hora se há nomes para mover
+            verificacaoInterval = setInterval(verificarNomesParaMover, 3600000);
+        }
+
+        function verificarNomesParaMover() {
+            const agora = new Date();
+            const seteDiasEmMs = 7 * 24 * 60 * 60 * 1000;
+            let nomesMovidos = false;
+            
+            // Filtra os nomes que estão há mais de 7 dias na lista teste
+            const nomesParaMover = listaTeste.filter(item => {
+                const dataAdicao = new Date(item.dataAdicao);
+                return (agora - dataAdicao) > seteDiasEmMs;
+            });
+            
+            // Move os nomes para a lista definitiva
+            nomesParaMover.forEach(item => {
+                moverParaListaDefinitiva(item.nome);
+                nomesMovidos = true;
+            });
+            
+            // Remove os nomes movidos da lista teste
+            listaTeste = listaTeste.filter(item => {
+                const dataAdicao = new Date(item.dataAdicao);
+                return (agora - dataAdicao) <= seteDiasEmMs;
+            });
+            
+            if (nomesMovidos) {
+                salvarListas();
+                if (usuarioLogado) {
+                    atualizarListas();
+                }
+            }
+        }
 
         function mostrarLogin() {
             document.getElementById('loginPanel').style.display = 'block';
@@ -180,7 +281,7 @@
                 document.getElementById('adminPanel').style.display = 'block';
                 document.getElementById('loginResult').style.display = 'none';
                 
-                atualizarListaNomes();
+                atualizarListas();
             } else {
                 loginResult.style.display = 'block';
                 loginResult.className = 'error';
@@ -204,19 +305,26 @@
                 return;
             }
             
-            // Verifica se o nome está na lista (case insensitive)
-            const encontrado = listaDeNomes.some(item => 
-                item.toLowerCase() === nome.toLowerCase()
+            // Verifica se o nome está em qualquer lista (case insensitive)
+            const encontradoTeste = listaTeste.some(item => 
+                item.nome.toLowerCase() === nome.toLowerCase()
+            );
+            
+            const encontradoDefinitivo = listaDefinitiva.some(item => 
+                item.nome.toLowerCase() === nome.toLowerCase()
             );
             
             // Exibe o resultado
             resultDiv.style.display = "block";
-            if (encontrado) {
+            if (encontradoDefinitivo) {
                 resultDiv.className = "found";
-                resultDiv.innerHTML = `<strong>${nome}</strong> consta em nossa lista.`;
+                resultDiv.innerHTML = `<strong>${nome}</strong> consta na <strong>Lista Definitiva</strong>.`;
+            } else if (encontradoTeste) {
+                resultDiv.className = "found";
+                resultDiv.innerHTML = `<strong>${nome}</strong> consta na <strong>Lista Teste</strong> (aguardando aprovação definitiva).`;
             } else {
                 resultDiv.className = "not-found";
-                resultDiv.innerHTML = `<strong>${nome}</strong> não consta em nossa lista.`;
+                resultDiv.innerHTML = `<strong>${nome}</strong> não consta em nenhuma de nossas listas.`;
             }
         }
 
@@ -231,63 +339,155 @@
                 return;
             }
             
-            // Verifica se o nome já existe (case insensitive)
-            const existe = listaDeNomes.some(nome => 
-                nome.toLowerCase() === novoNome.toLowerCase()
+            // Verifica se o nome já existe em qualquer lista (case insensitive)
+            const existeTeste = listaTeste.some(item => 
+                item.nome.toLowerCase() === novoNome.toLowerCase()
             );
             
-            if (existe) {
+            const existeDefinitivo = listaDefinitiva.some(item => 
+                item.nome.toLowerCase() === novoNome.toLowerCase()
+            );
+            
+            if (existeTeste || existeDefinitivo) {
                 adminResult.style.display = 'block';
                 adminResult.className = 'error';
-                adminResult.textContent = 'Este nome já está na lista';
+                adminResult.textContent = 'Este nome já está em uma das listas';
             } else {
-                listaDeNomes.push(novoNome);
+                listaTeste.push({
+                    nome: novoNome,
+                    dataAdicao: new Date().toISOString()
+                });
+                
                 adminResult.style.display = 'block';
                 adminResult.className = 'success';
-                adminResult.textContent = `Nome "${novoNome}" adicionado com sucesso!`;
+                adminResult.textContent = `Nome "${novoNome}" adicionado à Lista Teste com sucesso!`;
                 document.getElementById('novoNome').value = '';
                 
-                atualizarListaNomes();
+                salvarListas();
+                atualizarListas();
             }
         }
 
-        function removerNome(index) {
-            const nomeRemovido = listaDeNomes[index];
-            listaDeNomes.splice(index, 1);
+        function moverParaListaDefinitiva(nome) {
+            listaDefinitiva.push({
+                nome: nome,
+                dataAdicao: new Date().toISOString()
+            });
+        }
+
+        function removerNome(index, lista) {
+            if (lista === 'teste') {
+                listaTeste.splice(index, 1);
+            } else {
+                listaDefinitiva.splice(index, 1);
+            }
             
             const adminResult = document.getElementById('adminResult');
             adminResult.style.display = 'block';
             adminResult.className = 'success';
-            adminResult.textContent = `Nome "${nomeRemovido}" removido com sucesso!`;
+            adminResult.textContent = 'Nome removido com sucesso!';
             
-            atualizarListaNomes();
+            salvarListas();
+            atualizarListas();
         }
 
-        function atualizarListaNomes() {
-            const listaNomesDiv = document.getElementById('listaNomes');
-            listaNomesDiv.innerHTML = '';
+        function moverNomeManualmente(index) {
+            const nome = listaTeste[index].nome;
+            moverParaListaDefinitiva(nome);
+            listaTeste.splice(index, 1);
             
-            if (listaDeNomes.length === 0) {
-                listaNomesDiv.innerHTML = '<p>Nenhum nome cadastrado.</p>';
+            const adminResult = document.getElementById('adminResult');
+            adminResult.style.display = 'block';
+            adminResult.className = 'success';
+            adminResult.textContent = `Nome "${nome}" movido para a Lista Definitiva!`;
+            
+            salvarListas();
+            atualizarListas();
+        }
+
+        function formatarData(dataISO) {
+            const data = new Date(dataISO);
+            return data.toLocaleDateString('pt-BR');
+        }
+
+        function calcularDiasRestantes(dataAdicao) {
+            const agora = new Date();
+            const data = new Date(dataAdicao);
+            const seteDiasEmMs = 7 * 24 * 60 * 60 * 1000;
+            const tempoDecorrido = agora - data;
+            const diasRestantes = Math.ceil((seteDiasEmMs - tempoDecorrido) / (24 * 60 * 60 * 1000));
+            
+            return diasRestantes > 0 ? diasRestantes : 0;
+        }
+
+        function atualizarListas() {
+            atualizarListaTeste();
+            atualizarListaDefinitiva();
+        }
+
+        function atualizarListaTeste() {
+            const listaTesteDiv = document.getElementById('listaTeste');
+            listaTesteDiv.innerHTML = '';
+            
+            if (listaTeste.length === 0) {
+                listaTesteDiv.innerHTML = '<p>Nenhum nome na lista teste.</p>';
                 return;
             }
             
-            listaDeNomes.forEach((nome, index) => {
+            listaTeste.forEach((item, index) => {
                 const nomeItem = document.createElement('div');
                 nomeItem.className = 'nome-item';
                 
                 const nomeText = document.createElement('span');
-                nomeText.textContent = nome;
+                nomeText.innerHTML = `${item.nome} <span class="data-adicao">(adicionado em ${formatarData(item.dataAdicao)}, ${calcularDiasRestantes(item.dataAdicao)} dias restantes)</span>`;
+                
+                const buttonsDiv = document.createElement('div');
+                
+                const moveBtn = document.createElement('button');
+                moveBtn.className = 'move-btn';
+                moveBtn.textContent = 'Mover';
+                moveBtn.onclick = () => moverNomeManualmente(index);
                 
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'remove-btn';
                 removeBtn.textContent = 'Remover';
-                removeBtn.onclick = () => removerNome(index);
+                removeBtn.onclick = () => removerNome(index, 'teste');
+                
+                buttonsDiv.appendChild(moveBtn);
+                buttonsDiv.appendChild(removeBtn);
+                
+                nomeItem.appendChild(nomeText);
+                nomeItem.appendChild(buttonsDiv);
+                
+                listaTesteDiv.appendChild(nomeItem);
+            });
+        }
+
+        function atualizarListaDefinitiva() {
+            const listaDefinitivaDiv = document.getElementById('listaDefinitiva');
+            listaDefinitivaDiv.innerHTML = '';
+            
+            if (listaDefinitiva.length === 0) {
+                listaDefinitivaDiv.innerHTML = '<p>Nenhum nome na lista definitiva.</p>';
+                return;
+            }
+            
+            listaDefinitiva.forEach((item, index) => {
+                const nomeItem = document.createElement('div');
+                nomeItem.className = 'nome-item';
+                
+                const nomeText = document.createElement('span');
+                nomeText.innerHTML = `${item.nome} <span class="data-adicao">(desde ${formatarData(item.dataAdicao)})</span>`;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = 'Remover';
+                removeBtn.onclick = () => removerNome(index, 'definitiva');
                 
                 nomeItem.appendChild(nomeText);
                 nomeItem.appendChild(removeBtn);
                 
-                listaNomesDiv.appendChild(nomeItem);
+                listaDefinitivaDiv.appendChild(nomeItem);
             });
         }
     </script>
