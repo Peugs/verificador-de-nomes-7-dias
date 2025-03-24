@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Nomes</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; height: 100vh; justify-content: center; align-items: center; background-color: #f0f2f5; }
+        .container { background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); text-align: center; }
+        input, button { padding: 10px; margin: 10px 0; width: 100%; border-radius: 6px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Verificador de Nomes</h1>
+        <input type="text" id="nameInput" placeholder="Digite um nome">
+        <button onclick="checkName()">Verificar</button>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        const nameList = ["Ana", "Bruno", "Carla", "Daniel", "Eduardo", "Laís"];
+
+        function normalizeString(str) {
+            return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        }
+
+        function checkName() {
+            const inputName = normalizeString(document.getElementById("nameInput").value.trim());
+            const resultElement = document.getElementById("result");
+
+            if (!inputName) {
+                resultElement.textContent = "Por favor, insira um nome.";
+                resultElement.className = "error";
+                return;
+            }
+
+            if (nameList.some(name => normalizeString(name) === inputName)) {
+                resultElement.textContent = `O nome "${inputName}" está na lista.`;
+                resultElement.className = "success";
+            } else {
+                resultElement.textContent = `O nome "${inputName}" NÃO está na lista.`;
+                resultElement.className = "error";
+            }
+        }
+    </script>
+</body>
+</html>
